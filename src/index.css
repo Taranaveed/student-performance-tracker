@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@layer utilities {
+  /* Mobile-friendly form elements */
+  .mobile-input {
+    @apply w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none;
+    min-height: 44px; /* iOS tap target */
+  }
+  
+  /* Stack grids on mobile */
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
+  }
+}
