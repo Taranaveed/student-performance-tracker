@@ -1,12 +1,62 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-success-500: #10b981;
+  --color-success-600: #059669;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+}
+
+@layer components {
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm transition-colors;
+    min-height: 44px;
+    outline: none;
+  }
+  .input-field:focus {
+    @apply border-primary-500 ring-2 ring-primary-500/20;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 text-white rounded-lg font-medium text-sm transition-colors cursor-pointer;
+    min-height: 44px;
+  }
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-primary-700;
+  }
+  .btn-primary:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium text-sm transition-colors cursor-pointer;
+    min-height: 44px;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    @apply bg-gray-50;
+  }
+  .btn-secondary:focus {
+    @apply outline-none ring-2 ring-gray-400 ring-offset-2;
+  }
+  .btn-secondary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+}
+
 @layer utilities {
-  /* Mobile-friendly form elements */
   .mobile-input {
     @apply w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none;
-    min-height: 44px; /* iOS tap target */
+    min-height: 44px;
   }
-  
-  /* Stack grids on mobile */
+
   .responsive-grid {
     @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
   }

@@ -2,38 +2,57 @@ import { useState, useCallback } from 'react';
 import { performanceService } from '../services/performanceService';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../lib/firebase';
+import { getMonthRange } from '../lib/utils';
 
 export function usePerformance() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
 
-  /* Simple ratings (0-5 scale) - KEEP EXISTING
-  const saveDailyLog = useCallback(async (logData) => {
+  // ── Weekly (new) ────────────────────────────────────────────────────────────
+
+  const saveWeeklySection = useCallback(async (studentId, year, month, week, sectionData) => {
     setLoading(true);
     try {
-      const teacherId = user?.uid || auth.currentUser?.uid;
-      if (!teacherId) throw new Error('No authenticated user');
-      
-      const result = await performanceService.createLog(logData, teacherId);
+      const uid = user?.uid || auth.currentUser?.uid;
+      if (!uid) throw new Error('No authenticated user');
+      const id = await performanceService.saveWeeklySection(studentId, year, month, week, sectionData, uid);
       setError(null);
-      return result;
+      return id;
     } catch (err) {
       setError(err.message);
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [user]);*/
+  }, [user]);
 
-  // Detailed marks (100-point system) - MAKE SURE THIS EXISTS
+  const getWeeklyRecord = useCallback(async (studentId, year, month, week) => {
+    try {
+      return await performanceService.getWeeklyRecord(studentId, year, month, week);
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  }, []);
+
+  const getMonthlyRecords = useCallback(async (studentId, year, month) => {
+    try {
+      return await performanceService.getMonthlyRecords(studentId, year, month);
+    } catch (err) {
+      setError(err.message);
+      return [];
+    }
+  }, []);
+
+  // ── Legacy daily (kept for old data + reports) ───────────────────────────────
+
   const saveDetailedMarks = useCallback(async (logData) => {
     setLoading(true);
     try {
-      const teacherId = user?.uid || auth.currentUser?.uid;
-      if (!teacherId) throw new Error('No authenticated user');
-      
-      const result = await performanceService.createDetailedMarks(logData, teacherId);
+      const uid = user?.uid || auth.currentUser?.uid;
+      if (!uid) throw new Error('No authenticated user');
+      const result = await performanceService.createDetailedMarks(logData, uid);
       setError(null);
       return result;
     } catch (err) {
@@ -43,6 +62,15 @@ export function usePerformance() {
       setLoading(false);
     }
   }, [user]);
+
+  const getDetailedMarksByDate = useCallback(async (studentId, date) => {
+    try {
+      return await performanceService.getDetailedMarksByDate(studentId, date);
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  }, []);
 
   const getStudentLogs = useCallback(async (studentId, startDate, endDate) => {
     setLoading(true);
@@ -59,18 +87,21 @@ export function usePerformance() {
   }, []);
 
   const getMonthlyLogs = useCallback(async (studentId, year, month) => {
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
-    return getStudentLogs(studentId, startDate, endDate);
+    const { start, end } = getMonthRange(year, month);
+    return getStudentLogs(studentId, start, end);
   }, [getStudentLogs]);
 
-  // MAKE SURE saveDetailedMarks IS IN THIS RETURN OBJECT
   return {
-     
-    saveDetailedMarks,   
+    loading,
+    error,
+    // weekly
+    saveWeeklySection,
+    getWeeklyRecord,
+    getMonthlyRecords,
+    // legacy daily
+    saveDetailedMarks,
+    getDetailedMarksByDate,
     getStudentLogs,
     getMonthlyLogs,
-    loading,
-    error
   };
 }

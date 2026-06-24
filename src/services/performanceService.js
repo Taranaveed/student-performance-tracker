@@ -1,137 +1,111 @@
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
+import {
+  collection,
   deleteDoc,
-  doc, 
-  query, 
-  where, 
+  doc,
+  query,
+  where,
   getDocs,
   setDoc,
-  getDoc
+  getDoc,
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { auth } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 
 const LOGS_COLLECTION = 'performance_logs';
 
-export const performanceService = {
-  // ========== SIMPLE RATINGS (0-5 scale) ==========
-  /*
-  async createLog(logData, teacherId) {
-    const actualTeacherId = teacherId || auth.currentUser?.uid;
-    
-    if (!actualTeacherId) {
-      throw new Error('No teacherId available - user not authenticated');
-    }
+// Doc ID format: studentId_YYYY_MM_Wn  (e.g. abc123_2026_04_W1)
+function weekDocId(studentId, year, month, week) {
+  const mm = String(month).padStart(2, '0');
+  return `${studentId}_${year}_${mm}_W${week}`;
+}
 
-    const dataToSave = {
-      ...logData,
-      teacherId: actualTeacherId,
-      type: 'simple_ratings'
-    };
-    const existingLog = await this.getLogByDate(logData.studentId, logData.date);
-    
-    if (existingLog) {
-      await updateDoc(doc(db, LOGS_COLLECTION, existingLog.id), {
-        ...dataToSave,
-        updatedAt: new Date().toISOString()
-      });
-      return { id: existingLog.id, ...dataToSave };
-    }
-    
-    const docRef = await addDoc(collection(db, LOGS_COLLECTION), {
-      ...dataToSave,
-      createdAt: new Date().toISOString()
-    });
-    
-    return { id: docRef.id, ...dataToSave };
+export const performanceService = {
+
+  // Save (merge) a single section for a weekly record.
+  // sectionData: { [sectionKey]: { ...fields } }
+  async saveWeeklySection(studentId, year, month, week, sectionData, editorUid) {
+    const uid = editorUid || auth.currentUser?.uid;
+    if (!uid) throw new Error('Not authenticated');
+
+    const docId  = weekDocId(studentId, year, month, week);
+    const docRef = doc(db, LOGS_COLLECTION, docId);
+
+    await setDoc(docRef, {
+      studentId,
+      year,
+      month,
+      week,
+      ...sectionData,
+      updatedAt: new Date().toISOString(),
+      updatedBy: uid,
+    }, { merge: true });
+
+    return docId;
   },
 
-  async getLogByDate(studentId, date) {
+  // Get a specific week's full record
+  async getWeeklyRecord(studentId, year, month, week) {
+    const docRef = doc(db, LOGS_COLLECTION, weekDocId(studentId, year, month, week));
+    const snap   = await getDoc(docRef);
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  },
+
+  // Get all weekly records for a student in a given month
+  async getMonthlyRecords(studentId, year, month) {
     const q = query(
       collection(db, LOGS_COLLECTION),
       where('studentId', '==', studentId),
-      where('date', '==', date)
+      where('year',      '==', year),
+      where('month',     '==', month),
     );
-    
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
-    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-  },*/
+    const snap = await getDocs(q);
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => a.week - b.week);
+  },
 
-  // ========== DETAILED MARKS (100-point system) ==========
-  
+  // Get all monthly records for a house (for principal / full-view dashboards)
+  async getMonthlyRecordsByHouse(house, year, month) {
+    const q = query(
+      collection(db, LOGS_COLLECTION),
+      where('house',  '==', house),
+      where('year',   '==', year),
+      where('month',  '==', month),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async deleteRecord(docId) {
+    await deleteDoc(doc(db, LOGS_COLLECTION, docId));
+  },
+
+  // ── Legacy compat: daily detailed marks (kept for old data) ─────────────────
   async createDetailedMarks(logData, teacherId) {
-    const actualTeacherId = teacherId || auth.currentUser?.uid;
-    
-    if (!actualTeacherId) {
-      throw new Error('No teacherId available - user not authenticated');
-    }
-
-    const dataToSave = {
-      ...logData,
-      teacherId: actualTeacherId,
-      type: 'detailed_marks'
-    };
-
-    // Use composite ID for deterministic updates
-    const docId = `${actualTeacherId}_${logData.studentId}_${logData.date}`;
+    const uid = teacherId || auth.currentUser?.uid;
+    if (!uid) throw new Error('Not authenticated');
+    const docId  = `${uid}_${logData.studentId}_${logData.date}`;
     const docRef = doc(db, LOGS_COLLECTION, docId);
-    
-    await setDoc(docRef, {
-      ...dataToSave,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-    
-    return { id: docId, ...dataToSave };
+    await setDoc(docRef, { ...logData, teacherId: uid, type: 'detailed_marks', updatedAt: new Date().toISOString() }, { merge: true });
+    return { id: docId };
   },
 
   async getDetailedMarksByDate(studentId, date) {
-    const teacherId = auth.currentUser?.uid;
-    const docId = `${teacherId}_${studentId}_${date}`;
-    const docRef = doc(db, LOGS_COLLECTION, docId);
-    
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return null;
-    
-    const data = docSnap.data();
-    return data.type === 'detailed_marks' ? { id: docSnap.id, ...data } : null;
+    const uid    = auth.currentUser?.uid;
+    const docId  = `${uid}_${studentId}_${date}`;
+    const snap   = await getDoc(doc(db, LOGS_COLLECTION, docId));
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    return data.type === 'detailed_marks' ? { id: snap.id, ...data } : null;
   },
 
-  // ========== SHARED QUERIES ==========
-  
   async getLogsByStudent(studentId, startDate, endDate) {
     const q = query(
       collection(db, LOGS_COLLECTION),
       where('studentId', '==', studentId),
       where('date', '>=', startDate),
-      where('date', '<=', endDate)
+      where('date', '<=', endDate),
     );
-    
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   },
-
-  async getLogsByTeacher(teacherId, startDate, endDate) {
-    const q = query(
-      collection(db, LOGS_COLLECTION),
-      where('teacherId', '==', teacherId),
-      where('date', '>=', startDate),
-      where('date', '<=', endDate)
-    );
-    
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  },
-
-  async deleteLog(logId) {
-    await deleteDoc(doc(db, LOGS_COLLECTION, logId));
-  }
 };

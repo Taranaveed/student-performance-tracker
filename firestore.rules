@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper: is the caller authenticated? ─────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // ── Helper: get the caller's role from the users collection ──────────────
+    function callerRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // ── Helper: full-view roles (principal / vice principal) ─────────────────
+    function hasFullView() {
+      return callerRole() in ['principal', 'vicePrincipal'];
+    }
+
+    // ── User profiles ─────────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Anyone can read their own profile; principals can read all profiles
+      allow read: if isAuth() && (request.auth.uid == userId || hasFullView());
+      // Users can only write their own profile
+      allow write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // ── Legacy teachers collection ────────────────────────────────────────────
+    match /teachers/{userId} {
+      allow read:  if isAuth() && (request.auth.uid == userId || hasFullView());
+      allow write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // ── Students ──────────────────────────────────────────────────────────────
+    match /students/{studentId} {
+      // Any authenticated user can READ students
+      // (principal sees all; house roles filter in code)
+      allow read: if isAuth();
+
+      // Any authenticated user can CREATE students
+      allow create: if isAuth();
+
+      // Only the teacher who created the student OR a full-view role can UPDATE/DELETE
+      allow update, delete: if isAuth() &&
+        (request.auth.uid == resource.data.teacherId || hasFullView());
+    }
+
+    // ── Performance logs ──────────────────────────────────────────────────────
+    match /performance_logs/{logId} {
+      // Any authenticated user can read logs
+      allow read: if isAuth();
+
+      // Any authenticated user can create/update logs
+      allow create, update: if isAuth();
+
+      // Only the creator OR a full-view role can delete
+      allow delete: if isAuth() &&
+        (request.auth.uid == resource.data.updatedBy || hasFullView());
+    }
+  }
+}
