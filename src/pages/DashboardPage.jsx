@@ -1,10 +1,10 @@
 import { useStudents } from '../hooks/useStudents';
 import { usePerformance } from '../hooks/usePerformance';
 import { Users, ClipboardCheck, TrendingUp, Calendar, BookOpen } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ROLE_LABELS } from '../config/marksSystem';
+import { ROLE_LABELS, FULL_VIEW_ROLES, HOUSES, GRADES } from '../config/marksSystem';
 import bannerImg from '../assets/chand-bagh-banner.png';
 import schoolLogo from '../assets/chand-bagh-logo.png';
 
@@ -63,6 +63,18 @@ export function DashboardPage() {
 
     fetchStats();
   }, [students, getMonthlyRecords]);
+
+  const isPrincipalView = FULL_VIEW_ROLES.includes(role);
+
+  const houseBreakdown = useMemo(() =>
+    HOUSES.map(h => ({ house: h, count: students.filter(s => s.house === h).length })),
+    [students]
+  );
+
+  const gradeBreakdown = useMemo(() =>
+    GRADES.map(g => ({ grade: g, count: students.filter(s => s.grade === g).length })),
+    [students]
+  );
 
   const stats = [
     { title: 'Total Students',    value: students.length,                      icon: Users,         color: 'bg-blue-50 text-blue-600'   },
@@ -172,6 +184,45 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Student Overview — Principals and VPs only */}
+      {isPrincipalView && students.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-base font-semibold text-gray-900">Student Overview</h3>
+
+          {/* By House */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By House</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              {houseBreakdown.map(({ house, count }) => (
+                <div
+                  key={house}
+                  className="flex flex-col items-center justify-center bg-blue-50 border border-blue-100 rounded-lg py-3 px-2"
+                >
+                  <span className="text-xl font-bold text-blue-800">{count}</span>
+                  <span className="text-xs text-blue-600 font-medium mt-0.5 text-center leading-tight">{house}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* By Grade */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By Class</p>
+            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3">
+              {gradeBreakdown.map(({ grade, count }) => (
+                <div
+                  key={grade}
+                  className="flex flex-col items-center justify-center bg-indigo-50 border border-indigo-100 rounded-lg py-3 px-2"
+                >
+                  <span className="text-xl font-bold text-indigo-800">{count}</span>
+                  <span className="text-xs text-indigo-600 font-medium mt-0.5 uppercase">{grade}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Plus, Search, Upload, RefreshCw } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Search, Upload, RefreshCw, X } from 'lucide-react';
 import { StudentCard } from './StudentCard';
 import { StudentModal } from './StudentModal';
 import { useStudents } from '../../hooks/useStudents';
 import { useAuth } from '../../context/AuthContext';
 import { SEED_STUDENTS } from '../../config/seedStudents';
 import { studentService } from '../../services/studentService';
-import { FULL_VIEW_ROLES } from '../../config/marksSystem';
+import { FULL_VIEW_ROLES, HOUSES, GRADES } from '../../config/marksSystem';
 
 const HOUSE_SCOPED_ROLES = ['housemaster', 'housemistress', 'assistantHousemaster', 'houseTeam'];
 
@@ -14,16 +14,37 @@ export function RosterGrid() {
   const { students, loading, error, addStudent, updateStudent, deleteStudent, refresh } = useStudents();
   const { user, role, profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedHouse, setSelectedHouse] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [importing, setImporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null); // { type: 'success'|'info'|'error', text }
 
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.rollNumber.includes(searchTerm)
-  );
+  const isPrincipalView = FULL_VIEW_ROLES.includes(role);
+  const hasActiveFilter = selectedHouse !== '' || selectedGrade !== '';
+
+  const filteredStudents = useMemo(() => {
+    let result = students;
+    if (isPrincipalView) {
+      if (selectedHouse) result = result.filter(s => s.house === selectedHouse);
+      if (selectedGrade) result = result.filter(s => s.grade === selectedGrade);
+    }
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(s =>
+        s.name.toLowerCase().includes(term) ||
+        s.rollNumber.includes(searchTerm)
+      );
+    }
+    return result;
+  }, [students, isPrincipalView, selectedHouse, selectedGrade, searchTerm]);
+
+  const clearFilters = () => {
+    setSelectedHouse('');
+    setSelectedGrade('');
+  };
 
   const handleAdd = async (formData) => {
     await addStudent(formData);
@@ -139,6 +160,55 @@ export function RosterGrid() {
           {syncMessage.text}
         </div>
       )}
+      {/* Principal/VP filter bar */}
+      {isPrincipalView && (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <span className="text-xs font-semibold text-blue-800 uppercase tracking-wide shrink-0">
+            Filter by
+          </span>
+          <select
+            value={selectedHouse}
+            onChange={(e) => setSelectedHouse(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          >
+            <option value="">All Houses</option>
+            {HOUSES.map(h => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
+          <select
+            value={selectedGrade}
+            onChange={(e) => setSelectedGrade(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          >
+            <option value="">All Classes</option>
+            {GRADES.map(g => (
+              <option key={g} value={g}>{g.toUpperCase()}</option>
+            ))}
+          </select>
+          {hasActiveFilter && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Active filter summary badge */}
+      {isPrincipalView && hasActiveFilter && (
+        <div className="flex items-center gap-2 text-sm">
+          <span className="inline-flex items-center gap-1.5 bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-full px-3 py-1 font-medium">
+            Showing {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''}
+            {selectedHouse && <> · House: <strong>{selectedHouse}</strong></>}
+            {selectedGrade && <> · Class: <strong>{selectedGrade.toUpperCase()}</strong></>}
+          </span>
+        </div>
+      )}
+
       {/* Search + Add Button - Stack on mobile */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative w-full sm:w-96">
@@ -188,7 +258,9 @@ export function RosterGrid() {
         </div>
       ) : filteredStudents.length === 0 ? (
         <div className="text-center py-12 text-gray-500 px-4">
-          {searchTerm ? 'No students found matching your search.' : 'No students added yet. Add your first student!'}
+          {searchTerm || hasActiveFilter
+            ? 'No students found matching your search or filters.'
+            : 'No students added yet. Add your first student!'}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
