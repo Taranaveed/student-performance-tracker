@@ -12,15 +12,14 @@ const AuthContext = createContext(null);
 // chosen their active workspace yet for this session.
 
 const ROLE_ICONS = {
-  admin:                { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
-  teacher:              { bg: 'bg-green-100',  text: 'text-green-700',  border: 'border-green-200'  },
-  housemaster:          { bg: 'bg-blue-100',   text: 'text-blue-700',   border: 'border-blue-200'   },
-  housemistress:        { bg: 'bg-pink-100',   text: 'text-pink-700',   border: 'border-pink-200'   },
-  assistantHousemaster: { bg: 'bg-blue-50',    text: 'text-blue-600',   border: 'border-blue-100'   },
-  peHead:               { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
-  skillsHead:           { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
-  activitiesHead:       { bg: 'bg-teal-100',   text: 'text-teal-700',   border: 'border-teal-200'   },
-  houseTeam:            { bg: 'bg-gray-100',   text: 'text-gray-700',   border: 'border-gray-200'   },
+  admin:         { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+  teacher:       { bg: 'bg-green-100',  text: 'text-green-700',  border: 'border-green-200'  },
+  housemaster:   { bg: 'bg-blue-100',   text: 'text-blue-700',   border: 'border-blue-200'   },
+  housemistress: { bg: 'bg-pink-100',   text: 'text-pink-700',   border: 'border-pink-200'   },
+  peHead:        { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
+  skillsHead:    { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
+  activitiesHead:{ bg: 'bg-teal-100',   text: 'text-teal-700',   border: 'border-teal-200'   },
+  houseTeam:     { bg: 'bg-gray-100',   text: 'text-gray-700',   border: 'border-gray-200'   },
 };
 
 function RolePickerScreen({ profile, onSelect }) {

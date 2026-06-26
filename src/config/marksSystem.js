@@ -1,27 +1,25 @@
 // ─── Role Definitions ────────────────────────────────────────────────────────
 
 export const ROLES = {
-  ADMIN:            'admin',
-  HOUSEMASTER:      'housemaster',
-  HOUSEMISTRESS:    'housemistress',
-  ASST_HOUSEMASTER: 'assistantHousemaster',
-  TEACHER:          'teacher',
-  PE_HEAD:          'peHead',
-  SKILLS_HEAD:      'skillsHead',
-  ACTIVITIES_HEAD:  'activitiesHead',
-  HOUSE_TEAM:       'houseTeam',
+  ADMIN:          'admin',
+  HOUSEMASTER:    'housemaster',
+  HOUSEMISTRESS:  'housemistress',
+  TEACHER:        'teacher',
+  PE_HEAD:        'peHead',
+  SKILLS_HEAD:    'skillsHead',
+  ACTIVITIES_HEAD:'activitiesHead',
+  HOUSE_TEAM:     'houseTeam',
 };
 
 export const ROLE_LABELS = {
-  admin:                'Admin',
-  housemaster:          'Housemaster',
-  housemistress:        'Housemistress',
-  assistantHousemaster: 'Assistant Housemaster',
-  teacher:              'Teacher',
-  peHead:               'PE Head',
-  skillsHead:           'Skills Head',
-  activitiesHead:       'Activities Head',
-  houseTeam:            'House Team',
+  admin:         'Admin',
+  housemaster:   'Housemaster/AHM',
+  housemistress: 'Housemistress',
+  teacher:       'Teacher',
+  peHead:        'PE Head',
+  skillsHead:    'Skills Head',
+  activitiesHead:'Activities Head',
+  houseTeam:     'House Team',
 };
 
 // Which roles can VIEW all students across the entire institution (no house/class restriction)
@@ -40,15 +38,14 @@ export const HEAD_ROLE_DOMAIN = {
 
 // Sections each role can EDIT (write access)
 export const ROLE_SECTION_PERMISSIONS = {
-  admin:                ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'penalties', 'bonus'],
-  housemaster:          ['A', 'C', 'penalties', 'bonus'],
-  assistantHousemaster: ['A', 'C', 'penalties'],
-  houseTeam:            ['A', 'C'],
-  housemistress:        ['B'],
-  teacher:              ['E'],
-  peHead:               ['D'],
-  skillsHead:           ['F'],
-  activitiesHead:       ['G'],
+  admin:         ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'penalties', 'bonus'],
+  housemaster:   ['A', 'C', 'penalties', 'bonus'],
+  houseTeam:     ['A', 'C'],
+  housemistress: ['B'],
+  teacher:       ['E'],
+  peHead:        ['D'],
+  skillsHead:    ['F'],
+  activitiesHead:['G'],
 };
 
 // ─── Marks System ─────────────────────────────────────────────────────────────
@@ -59,7 +56,7 @@ export const MARKS_SYSTEM = {
   dailyRoutine: {
     label: 'Daily Routine Discipline',
     section: 'A',
-    filledBy: ['housemaster', 'assistantHousemaster', 'houseTeam', 'admin'],
+    filledBy: ['housemaster', 'houseTeam', 'admin'],
     maxTotal: 50,
     factors: [
       { key: 'wakeUpOnTime',         label: 'Wake-up on time',          max: 7 },
@@ -92,7 +89,7 @@ export const MARKS_SYSTEM = {
   studyDiscipline: {
     label: 'Study Discipline (Toye)',
     section: 'C',
-    filledBy: ['houseTeam', 'housemaster', 'assistantHousemaster', 'admin'],
+    filledBy: ['houseTeam', 'housemaster', 'admin'],
     maxTotal: 12,
     factors: [
       { key: 'toye1', label: 'Toye 1', max: 6 },
@@ -170,7 +167,7 @@ export const MARKS_SYSTEM = {
   // Penalty System  (HM / AHM)
   penalties: {
     label: 'Penalty System',
-    filledBy: ['housemaster', 'assistantHousemaster', 'admin'],
+    filledBy: ['housemaster', 'admin'],
     subcategories: {
       minorOffences: {
         label: 'Minor Offences',

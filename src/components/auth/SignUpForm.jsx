@@ -4,7 +4,7 @@ import { Eye, EyeOff, Mail, Lock, User, Shield, ChevronDown, X, UserPlus, ArrowL
 import { authService } from '../../services/authService';
 import { ROLE_LABELS, HOUSES, GRADES, MAX_TEACHER_CLASSES } from '../../config/marksSystem';
 
-const HOUSE_ROLES   = ['housemaster', 'housemistress', 'assistantHousemaster', 'houseTeam'];
+const HOUSE_ROLES   = ['housemaster', 'housemistress', 'houseTeam'];
 const SUBJECT_ROLES = ['teacher'];
 
 export function SignUpForm() {

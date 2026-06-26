@@ -8,7 +8,7 @@ import { SEED_STUDENTS } from '../../config/seedStudents';
 import { studentService } from '../../services/studentService';
 import { FULL_VIEW_ROLES, HOUSES, GRADES } from '../../config/marksSystem';
 
-const HOUSE_SCOPED_ROLES = ['housemaster', 'housemistress', 'assistantHousemaster', 'houseTeam'];
+const HOUSE_SCOPED_ROLES = ['housemaster', 'housemistress', 'houseTeam'];
 
 export function RosterGrid() {
   const { students, loading, error, addStudent, updateStudent, deleteStudent, refresh } = useStudents();

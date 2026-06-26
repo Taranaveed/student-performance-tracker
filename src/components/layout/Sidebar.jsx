@@ -7,11 +7,10 @@ import { ROLE_LABELS, FULL_VIEW_ROLES } from '../../config/marksSystem';
 import schoolLogo from '../../assets/chand-bagh-logo.png';
 
 const ROLE_COLORS = {
-  admin:                'bg-purple-100 text-purple-700',
-  housemaster:          'bg-blue-100 text-blue-700',
-  housemistress:        'bg-pink-100 text-pink-700',
-  assistantHousemaster: 'bg-blue-50 text-blue-600',
-  teacher:              'bg-green-100 text-green-700',
+  admin:         'bg-purple-100 text-purple-700',
+  housemaster:   'bg-blue-100 text-blue-700',
+  housemistress: 'bg-pink-100 text-pink-700',
+  teacher:       'bg-green-100 text-green-700',
   peHead:               'bg-orange-100 text-orange-700',
   skillsHead:           'bg-yellow-100 text-yellow-700',
   activitiesHead:       'bg-teal-100 text-teal-700',
