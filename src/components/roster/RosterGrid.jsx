@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Upload, RefreshCw, X } from 'lucide-react';
+import { Plus, Search, Upload, RefreshCw, X, FolderOpen } from 'lucide-react';
 import { StudentCard } from './StudentCard';
 import { StudentModal } from './StudentModal';
 import { useStudents } from '../../hooks/useStudents';
@@ -12,7 +12,7 @@ const HOUSE_SCOPED_ROLES = ['housemaster', 'housemistress', 'assistantHousemaste
 
 export function RosterGrid() {
   const { students, loading, error, addStudent, updateStudent, deleteStudent, refresh } = useStudents();
-  const { user, role, profile } = useAuth();
+  const { user, role, profile, assignedClasses } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedHouse, setSelectedHouse] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('');
@@ -22,11 +22,22 @@ export function RosterGrid() {
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null); // { type: 'success'|'info'|'error', text }
 
+  // Class folder tabs — only for teachers with multiple assigned classes
+  const isMultiClassTeacher = role === 'teacher' && Array.isArray(assignedClasses) && assignedClasses.length > 1;
+  const [activeClassTab, setActiveClassTab] = useState(
+    isMultiClassTeacher ? assignedClasses[0] : null
+  );
+
   const isPrincipalView = FULL_VIEW_ROLES.includes(role);
   const hasActiveFilter = selectedHouse !== '' || selectedGrade !== '';
 
   const filteredStudents = useMemo(() => {
     let result = students;
+    // For multi-class teachers: scope to the active class tab
+    if (isMultiClassTeacher && activeClassTab) {
+      result = result.filter(s => s.grade === activeClassTab);
+    }
+    // For admin/head roles: apply house/grade filter controls
     if (isPrincipalView) {
       if (selectedHouse) result = result.filter(s => s.house === selectedHouse);
       if (selectedGrade) result = result.filter(s => s.grade === selectedGrade);
@@ -39,7 +50,7 @@ export function RosterGrid() {
       );
     }
     return result;
-  }, [students, isPrincipalView, selectedHouse, selectedGrade, searchTerm]);
+  }, [students, isMultiClassTeacher, activeClassTab, isPrincipalView, selectedHouse, selectedGrade, searchTerm]);
 
   const clearFilters = () => {
     setSelectedHouse('');
@@ -144,8 +155,46 @@ export function RosterGrid() {
 
   const showSyncButton = !FULL_VIEW_ROLES.includes(role);
 
+  // Count of students per class tab (for badge)
+  const classTabCounts = useMemo(() => {
+    if (!isMultiClassTeacher) return {};
+    return Object.fromEntries(
+      assignedClasses.map(cls => [cls, students.filter(s => s.grade === cls).length])
+    );
+  }, [isMultiClassTeacher, assignedClasses, students]);
+
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
+
+      {/* ── Class Folder Tabs (multi-class teachers only) ── */}
+      {isMultiClassTeacher && (
+        <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-0">
+          {assignedClasses.map(cls => {
+            const isActive = activeClassTab === cls;
+            const count    = classTabCounts[cls] ?? 0;
+            return (
+              <button
+                key={cls}
+                onClick={() => { setActiveClassTab(cls); setSearchTerm(''); }}
+                className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-t-lg border border-b-0 transition-colors ${
+                  isActive
+                    ? 'bg-white border-gray-200 text-blue-700 -mb-px z-10'
+                    : 'bg-gray-50 border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <FolderOpen className={`w-4 h-4 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
+                Class {cls.toUpperCase()}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                  isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
           <strong>Error:</strong> {error}
@@ -222,7 +271,7 @@ export function RosterGrid() {
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {(role === 'principal' || role === 'vicePrincipal') && (
+          {role === 'admin' && (
             <button
               onClick={handleImport}
               disabled={importing}

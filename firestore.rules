@@ -7,21 +7,35 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // ── Helper: get the caller's role from the users collection ──────────────
-    function callerRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    // ── Helper: get the caller's profile from the users collection ────────────
+    function callerProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // ── Helper: full-view roles (principal / vice principal) ─────────────────
+    // ── Helper: resolve the effective role ────────────────────────────────────
+    // Supports both legacy single-role field and new roles[] array.
+    // The active role is determined client-side and stored in activeRole on the
+    // document; fall back to role for backward-compat.
+    function callerRole() {
+      let p = callerProfile();
+      return p.get('activeRole', p.get('role', ''));
+    }
+
+    // ── Helper: roles with full institution-wide view ─────────────────────────
+    // admin  → systemic access
+    // peHead / skillsHead / activitiesHead → read-only global; write = domain-scoped
     function hasFullView() {
-      return callerRole() in ['principal', 'vicePrincipal'];
+      return callerRole() in ['admin', 'peHead', 'skillsHead', 'activitiesHead'];
+    }
+
+    // ── Helper: only the Admin gets systemic write privileges ─────────────────
+    function isAdmin() {
+      return callerRole() == 'admin';
     }
 
     // ── User profiles ─────────────────────────────────────────────────────────
     match /users/{userId} {
-      // Anyone can read their own profile; principals can read all profiles
-      allow read: if isAuth() && (request.auth.uid == userId || hasFullView());
-      // Users can only write their own profile
+      allow read:  if isAuth() && (request.auth.uid == userId || hasFullView());
       allow write: if isAuth() && request.auth.uid == userId;
     }
 
@@ -33,29 +47,26 @@ service cloud.firestore {
 
     // ── Students ──────────────────────────────────────────────────────────────
     match /students/{studentId} {
-      // Any authenticated user can READ students
-      // (principal sees all; house roles filter in code)
       allow read: if isAuth();
 
-      // Any authenticated user can CREATE students
       allow create: if isAuth();
 
-      // Only the teacher who created the student OR a full-view role can UPDATE/DELETE
+      // Only the teacher who created the student OR an admin can UPDATE/DELETE
       allow update, delete: if isAuth() &&
-        (request.auth.uid == resource.data.teacherId || hasFullView());
+        (request.auth.uid == resource.data.teacherId || isAdmin());
     }
 
     // ── Performance logs ──────────────────────────────────────────────────────
     match /performance_logs/{logId} {
-      // Any authenticated user can read logs
       allow read: if isAuth();
 
-      // Any authenticated user can create/update logs
+      // Any authenticated user can create/update logs (domain enforcement is
+      // handled client-side via ROLE_SECTION_PERMISSIONS)
       allow create, update: if isAuth();
 
-      // Only the creator OR a full-view role can delete
+      // Only the creator OR an admin can delete
       allow delete: if isAuth() &&
-        (request.auth.uid == resource.data.updatedBy || hasFullView());
+        (request.auth.uid == resource.data.updatedBy || isAdmin());
     }
   }
 }

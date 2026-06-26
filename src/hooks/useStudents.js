@@ -1,33 +1,56 @@
 import { useState, useEffect, useCallback } from 'react';
 import { studentService } from '../services/studentService';
 import { useAuth } from '../context/AuthContext';
+
 const HOUSE_SCOPED_ROLES = ['housemaster', 'housemistress', 'assistantHousemaster', 'houseTeam'];
 
 export function useStudents() {
-  const { user, role, houseAssignment, classAssignment, hasFullView } = useAuth();
+  const { user, role, houseAssignment, classAssignment, assignedClasses, hasFullView } = useAuth();
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
 
   const fetchStudents = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
       let data;
+
       if (hasFullView()) {
-        // Principal / Vice Principal: all students
+        // Admin + Head roles (peHead / skillsHead / activitiesHead): all students
         data = await studentService.getAllStudents();
+
       } else if (HOUSE_SCOPED_ROLES.includes(role) && houseAssignment) {
         // Housemaster / house roles: scoped to their house
         data = await studentService.getStudentsByHouse(houseAssignment);
-      } else if (role === 'teacher' && classAssignment) {
-        // Teacher with a class assignment: fetch all students in that grade
-        // regardless of which teacher originally imported them
-        data = await studentService.getStudentsByGrade(classAssignment);
+
+      } else if (role === 'teacher') {
+        // Teachers: fetch across all assigned classes
+        const classes = (assignedClasses && assignedClasses.length > 0)
+          ? assignedClasses
+          : (classAssignment ? [classAssignment] : []);
+
+        if (classes.length > 0) {
+          const results = await Promise.all(
+            classes.map(c => studentService.getStudentsByGrade(c))
+          );
+          // Flatten and de-duplicate by id
+          const seen = new Set();
+          data = results.flat().filter(s => {
+            if (seen.has(s.id)) return false;
+            seen.add(s.id);
+            return true;
+          });
+        } else {
+          // Fallback: own students
+          data = await studentService.getStudentsByTeacher(user.uid);
+        }
+
       } else {
-        // Legacy fallback: teacher without a classAssignment, or other roles
+        // Other / legacy roles
         data = await studentService.getStudentsByTeacher(user.uid);
       }
+
       setStudents(data);
       setError(null);
     } catch (err) {
@@ -35,7 +58,7 @@ export function useStudents() {
     } finally {
       setLoading(false);
     }
-  }, [user, role, houseAssignment, classAssignment, hasFullView]);
+  }, [user, role, houseAssignment, classAssignment, assignedClasses, hasFullView]);
 
   useEffect(() => {
     fetchStudents();
@@ -55,7 +78,7 @@ export function useStudents() {
   const updateStudent = async (studentId, updates) => {
     try {
       await studentService.updateStudent(studentId, updates);
-      setStudents(prev => prev.map(s => 
+      setStudents(prev => prev.map(s =>
         s.id === studentId ? { ...s, ...updates } : s
       ));
     } catch (err) {
@@ -81,6 +104,6 @@ export function useStudents() {
     addStudent,
     updateStudent,
     deleteStudent,
-    refresh: fetchStudents
+    refresh: fetchStudents,
   };
 }

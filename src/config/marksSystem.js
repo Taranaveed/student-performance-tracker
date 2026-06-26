@@ -1,38 +1,46 @@
 // ─── Role Definitions ────────────────────────────────────────────────────────
 
 export const ROLES = {
-  PRINCIPAL: 'principal',
-  VICE_PRINCIPAL: 'vicePrincipal',
-  HOUSEMASTER: 'housemaster',
-  HOUSEMISTRESS: 'housemistress',
+  ADMIN:            'admin',
+  HOUSEMASTER:      'housemaster',
+  HOUSEMISTRESS:    'housemistress',
   ASST_HOUSEMASTER: 'assistantHousemaster',
-  TEACHER: 'teacher',
-  PE_HEAD: 'peHead',
-  SKILLS_HEAD: 'skillsHead',
-  ACTIVITIES_HEAD: 'activitiesHead',
-  HOUSE_TEAM: 'houseTeam',
+  TEACHER:          'teacher',
+  PE_HEAD:          'peHead',
+  SKILLS_HEAD:      'skillsHead',
+  ACTIVITIES_HEAD:  'activitiesHead',
+  HOUSE_TEAM:       'houseTeam',
 };
 
 export const ROLE_LABELS = {
-  principal: 'Principal',
-  vicePrincipal: 'Vice Principal',
-  housemaster: 'Housemaster',
-  housemistress: 'Housemistress',
+  admin:                'Admin',
+  housemaster:          'Housemaster',
+  housemistress:        'Housemistress',
   assistantHousemaster: 'Assistant Housemaster',
-  teacher: 'Teacher',
-  peHead: 'PE Head',
-  skillsHead: 'Skills Head',
-  activitiesHead: 'Activities Head',
-  houseTeam: 'House Team',
+  teacher:              'Teacher',
+  peHead:               'PE Head',
+  skillsHead:           'Skills Head',
+  activitiesHead:       'Activities Head',
+  houseTeam:            'House Team',
 };
 
-// Which roles can VIEW all data (no house/class restriction)
-export const FULL_VIEW_ROLES = ['principal', 'vicePrincipal'];
+// Which roles can VIEW all students across the entire institution (no house/class restriction)
+// Head roles get full read-only view; Admin gets full systemic access
+export const FULL_VIEW_ROLES = ['admin', 'peHead', 'skillsHead', 'activitiesHead'];
 
-// Sections each role can EDIT
+// Head roles that have global read access but domain-scoped write access
+export const HEAD_ROLES = ['peHead', 'skillsHead', 'activitiesHead'];
+
+// Domain sections each head role is authorised to write
+export const HEAD_ROLE_DOMAIN = {
+  peHead:         ['D'],
+  skillsHead:     ['F'],
+  activitiesHead: ['G'],
+};
+
+// Sections each role can EDIT (write access)
 export const ROLE_SECTION_PERMISSIONS = {
-  principal:            ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'penalties', 'bonus'],
-  vicePrincipal:        ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'penalties', 'bonus'],
+  admin:                ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'penalties', 'bonus'],
   housemaster:          ['A', 'C', 'penalties', 'bonus'],
   assistantHousemaster: ['A', 'C', 'penalties'],
   houseTeam:            ['A', 'C'],
@@ -51,17 +59,17 @@ export const MARKS_SYSTEM = {
   dailyRoutine: {
     label: 'Daily Routine Discipline',
     section: 'A',
-    filledBy: ['housemaster', 'assistantHousemaster', 'houseTeam', 'principal', 'vicePrincipal'],
+    filledBy: ['housemaster', 'assistantHousemaster', 'houseTeam', 'admin'],
     maxTotal: 50,
     factors: [
-      { key: 'wakeUpOnTime',       label: 'Wake-up on time',        max: 7 },
-      { key: 'breakfastLineup',    label: 'Breakfast lineup',       max: 7 },
-      { key: 'schoolLineup',       label: 'School lineup',          max: 6 },
-      { key: 'lunchLineup',        label: 'Lunch lineup',           max: 6 },
-      { key: 'maghribLineup',      label: 'Maghrib lineup',         max: 7 },
-      { key: 'diningHallDiscipline', label: 'Dining hall discipline', max: 7 },
-      { key: 'lightsOut',          label: 'Lights out',             max: 7 },
-      { key: 'generalBehavior',    label: 'General behavior',       max: 3 },
+      { key: 'wakeUpOnTime',         label: 'Wake-up on time',          max: 7 },
+      { key: 'breakfastLineup',      label: 'Breakfast lineup',         max: 7 },
+      { key: 'schoolLineup',         label: 'School lineup',            max: 6 },
+      { key: 'lunchLineup',          label: 'Lunch lineup',             max: 6 },
+      { key: 'maghribLineup',        label: 'Maghrib lineup',           max: 7 },
+      { key: 'diningHallDiscipline', label: 'Dining hall discipline',   max: 7 },
+      { key: 'lightsOut',            label: 'Lights out',               max: 7 },
+      { key: 'generalBehavior',      label: 'General behavior',         max: 3 },
     ],
   },
 
@@ -69,14 +77,14 @@ export const MARKS_SYSTEM = {
   hygiene: {
     label: 'Hygiene & Turnout',
     section: 'B',
-    filledBy: ['housemistress', 'housemaster', 'principal', 'vicePrincipal'],
+    filledBy: ['housemistress', 'housemaster', 'admin'],
     maxTotal: 35,
     factors: [
-      { key: 'personalHygiene',      label: 'Personal hygiene',           max: 7 },
-      { key: 'dressTurnout',         label: 'Dress / turnout',            max: 7 },
-      { key: 'properDressOccasion',  label: 'Proper dress for occasion',  max: 7 },
-      { key: 'footwear',             label: 'Footwear',                   max: 7 },
-      { key: 'careOfBelongings',     label: 'Care of belongings',         max: 7 },
+      { key: 'personalHygiene',     label: 'Personal hygiene',          max: 7 },
+      { key: 'dressTurnout',        label: 'Dress / turnout',           max: 7 },
+      { key: 'properDressOccasion', label: 'Proper dress for occasion', max: 7 },
+      { key: 'footwear',            label: 'Footwear',                  max: 7 },
+      { key: 'careOfBelongings',    label: 'Care of belongings',        max: 7 },
     ],
   },
 
@@ -84,7 +92,7 @@ export const MARKS_SYSTEM = {
   studyDiscipline: {
     label: 'Study Discipline (Toye)',
     section: 'C',
-    filledBy: ['houseTeam', 'housemaster', 'assistantHousemaster', 'principal', 'vicePrincipal'],
+    filledBy: ['houseTeam', 'housemaster', 'assistantHousemaster', 'admin'],
     maxTotal: 12,
     factors: [
       { key: 'toye1', label: 'Toye 1', max: 6 },
@@ -96,19 +104,19 @@ export const MARKS_SYSTEM = {
   sportsActivities: {
     label: 'Sports & Activities',
     section: 'D',
-    filledBy: ['peHead', 'principal', 'vicePrincipal'],
+    filledBy: ['peHead', 'admin'],
     maxTotal: 0,
     qualitative: true,
     fields: [
-      { key: 'sportsParticipation', label: 'Sports participation',    type: 'select',
+      { key: 'sportsParticipation', label: 'Sports participation',  type: 'select',
         options: ['Excellent', 'Good', 'Average', 'Poor', 'Absent'] },
-      { key: 'houseActivities',     label: 'House activities',        type: 'select',
+      { key: 'houseActivities',     label: 'House activities',      type: 'select',
         options: ['Participated', 'Not Participated'] },
-      { key: 'fitnessLevel',        label: 'Fitness level',           type: 'select',
+      { key: 'fitnessLevel',        label: 'Fitness level',         type: 'select',
         options: ['Over', 'Under', 'Normal'] },
-      { key: 'bmi',                 label: 'BMI (Body Mass Index)',   type: 'number' },
-      { key: 'gameParticipated',    label: 'Game name participated',  type: 'text' },
-      { key: 'games',               label: 'Games',                   type: 'text' },
+      { key: 'bmi',                 label: 'BMI (Body Mass Index)', type: 'number' },
+      { key: 'gameParticipated',    label: 'Game name participated',type: 'text'   },
+      { key: 'games',               label: 'Games',                 type: 'text'   },
     ],
   },
 
@@ -116,7 +124,7 @@ export const MARKS_SYSTEM = {
   academics: {
     label: 'Academics',
     section: 'E',
-    filledBy: ['teacher', 'principal', 'vicePrincipal'],
+    filledBy: ['teacher', 'admin'],
     maxTotal: 25,
     factors: [
       { key: 'testPerformance', label: 'Test performance', max: 10 },
@@ -129,48 +137,48 @@ export const MARKS_SYSTEM = {
     ],
   },
 
-  // F. Skills Program  (HOD Skills) — 5 marks/day, up to 12 days
+  // F. Skills Program  (Skills Head) — 5 marks/day, up to 12 days
   skillsProgram: {
     label: 'Skills Program',
     section: 'F',
-    filledBy: ['skillsHead', 'principal', 'vicePrincipal'],
+    filledBy: ['skillsHead', 'admin'],
     maxPerDay: 5,
     totalDays: 12,
   },
 
-  // G. Events & Activities  (HOA — Activities Head)
+  // G. Events & Activities  (Activities Head)
   events: {
     label: 'Events & Activities',
     section: 'G',
-    filledBy: ['activitiesHead', 'principal', 'vicePrincipal'],
+    filledBy: ['activitiesHead', 'admin'],
     eventList: [
-      { key: 'essayWritS',        label: 'Essay Writing (Senior)'       },
-      { key: 'essayWritJ',        label: 'Essay Writing (Junior)'       },
-      { key: 'declamationS',      label: 'Declamation (Senior)'         },
-      { key: 'declamationJ',      label: 'Declamation (Junior)'         },
-      { key: 'extemporeSpeechS',  label: 'Extempore Speech (Senior)'    },
-      { key: 'extemporeSpeechJ',  label: 'Extempore Speech (Junior)'    },
-      { key: 'eloJunior',         label: 'ELO Junior'                   },
-      { key: 'eloSenior',         label: 'ELO Senior'                   },
-      { key: 'art',               label: 'Art'                          },
-      { key: 'intNaatQritS',      label: 'Int Naat & Qrit (Senior)'     },
-      { key: 'soloSinging',       label: 'Solo Singing'                 },
-      { key: 'intGenious',        label: 'Int Genious'                  },
+      { key: 'essayWritS',       label: 'Essay Writing (Senior)'    },
+      { key: 'essayWritJ',       label: 'Essay Writing (Junior)'    },
+      { key: 'declamationS',     label: 'Declamation (Senior)'      },
+      { key: 'declamationJ',     label: 'Declamation (Junior)'      },
+      { key: 'extemporeSpeechS', label: 'Extempore Speech (Senior)' },
+      { key: 'extemporeSpeechJ', label: 'Extempore Speech (Junior)' },
+      { key: 'eloJunior',        label: 'ELO Junior'                },
+      { key: 'eloSenior',        label: 'ELO Senior'                },
+      { key: 'art',              label: 'Art'                       },
+      { key: 'intNaatQritS',     label: 'Int Naat & Qrit (Senior)'  },
+      { key: 'soloSinging',      label: 'Solo Singing'              },
+      { key: 'intGenious',       label: 'Int Genious'               },
     ],
   },
 
   // Penalty System  (HM / AHM)
   penalties: {
     label: 'Penalty System',
-    filledBy: ['housemaster', 'assistantHousemaster', 'principal', 'vicePrincipal'],
+    filledBy: ['housemaster', 'assistantHousemaster', 'admin'],
     subcategories: {
       minorOffences: {
         label: 'Minor Offences',
         maxDeduction: -4,
         factors: [
-          { key: 'abusiveLanguage',           label: 'Abusive language',              deduction: -1 },
-          { key: 'lying',                     label: 'Lying',                         deduction: -1 },
-          { key: 'littering',                 label: 'Littering',                     deduction: -1 },
+          { key: 'abusiveLanguage',            label: 'Abusive language',               deduction: -1 },
+          { key: 'lying',                      label: 'Lying',                          deduction: -1 },
+          { key: 'littering',                  label: 'Littering',                      deduction: -1 },
           { key: 'takingFoodWithoutPermission', label: 'Taking food without permission', deduction: -1 },
         ],
       },
@@ -192,9 +200,9 @@ export const MARKS_SYSTEM = {
         label: 'Major Offences',
         maxDeduction: -20,
         factors: [
-          { key: 'smoking',          label: 'Smoking',            deduction: -5  },
-          { key: 'drugs',            label: 'Drugs',              deduction: -5  },
-          { key: 'otherHarassment',  label: 'Other / Harassment', deduction: -10 },
+          { key: 'smoking',         label: 'Smoking',            deduction: -5  },
+          { key: 'drugs',           label: 'Drugs',              deduction: -5  },
+          { key: 'otherHarassment', label: 'Other / Harassment', deduction: -10 },
         ],
       },
     },
@@ -203,13 +211,13 @@ export const MARKS_SYSTEM = {
   // Bonus Points  (HM)
   bonus: {
     label: 'Bonus Points',
-    filledBy: ['housemaster', 'principal', 'vicePrincipal'],
+    filledBy: ['housemaster', 'admin'],
     maxTotal: 16,
     factors: [
-      { key: 'bestCleanliness',        label: 'Best cleanliness',         max: 4 },
-      { key: 'noLatecomersWeek',       label: 'No latecomers (week)',     max: 4 },
-      { key: 'competitionWinner',      label: 'Competition winner',       max: 4 },
-      { key: 'perfectDisciplineWeek',  label: 'Perfect discipline week',  max: 4 },
+      { key: 'bestCleanliness',       label: 'Best cleanliness',        max: 4 },
+      { key: 'noLatecomersWeek',      label: 'No latecomers (week)',    max: 4 },
+      { key: 'competitionWinner',     label: 'Competition winner',      max: 4 },
+      { key: 'perfectDisciplineWeek', label: 'Perfect discipline week', max: 4 },
     ],
   },
 };
@@ -222,3 +230,6 @@ export const HOUSES = ['Qarshi', 'Abaseen', 'ZH', 'Saigol', 'Mehran', 'Ghani', '
 
 // Grade / class options
 export const GRADES = ['5a', '6a', '7a', '7b', '8a', '8b', '8c', '9a', '9b', '9c', '9d', '10a', '10b', '10c', '10d'];
+
+// Maximum classes a teacher can be assigned
+export const MAX_TEACHER_CLASSES = 5;

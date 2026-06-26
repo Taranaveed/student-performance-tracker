@@ -1,11 +1,11 @@
 import { useStudents } from '../hooks/useStudents';
 import { usePerformance } from '../hooks/usePerformance';
-import { Users, ClipboardCheck, TrendingUp, Calendar, BookOpen } from 'lucide-react';
+import { Users, ClipboardCheck, TrendingUp, Calendar, BookOpen, Filter } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ROLE_LABELS, FULL_VIEW_ROLES, HOUSES, GRADES } from '../config/marksSystem';
-import bannerImg from '../assets/chand-bagh-banner.png';
+import { ROLE_LABELS, FULL_VIEW_ROLES, HEAD_ROLES, HOUSES, GRADES } from '../config/marksSystem';
+import bannerImg  from '../assets/chand-bagh-banner.png';
 import schoolLogo from '../assets/chand-bagh-logo.png';
 
 const CURRENT_YEAR  = new Date().getFullYear();
@@ -24,6 +24,24 @@ export function DashboardPage() {
   const [thisWeekLogs, setThisWeekLogs]     = useState(0);
   const [monthlyAverage, setMonthlyAverage] = useState(0);
   const [loading, setLoading]               = useState(true);
+
+  // ── Global filters (visible to Admin + Head roles) ───────────────────────────
+  const [filterGrade, setFilterGrade] = useState('');
+  const [filterHouse, setFilterHouse] = useState('');
+
+  const isFullViewRole = FULL_VIEW_ROLES.includes(role);
+  const isHeadRole     = HEAD_ROLES.includes(role);
+  const isAdminView    = role === 'admin';
+
+  // Filtered students for the overview panel
+  const filteredStudents = useMemo(() => {
+    if (!isFullViewRole) return students;
+    return students.filter(s => {
+      if (filterGrade && s.grade !== filterGrade) return false;
+      if (filterHouse && s.house !== filterHouse) return false;
+      return true;
+    });
+  }, [students, isFullViewRole, filterGrade, filterHouse]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -64,23 +82,23 @@ export function DashboardPage() {
     fetchStats();
   }, [students, getMonthlyRecords]);
 
-  const isPrincipalView = FULL_VIEW_ROLES.includes(role);
+  const displayStudents = isFullViewRole ? filteredStudents : students;
 
   const houseBreakdown = useMemo(() =>
-    HOUSES.map(h => ({ house: h, count: students.filter(s => s.house === h).length })),
-    [students]
+    HOUSES.map(h => ({ house: h, count: displayStudents.filter(s => s.house === h).length })),
+    [displayStudents]
   );
 
   const gradeBreakdown = useMemo(() =>
-    GRADES.map(g => ({ grade: g, count: students.filter(s => s.grade === g).length })),
-    [students]
+    GRADES.map(g => ({ grade: g, count: displayStudents.filter(s => s.grade === g).length })),
+    [displayStudents]
   );
 
   const stats = [
-    { title: 'Total Students',    value: students.length,                      icon: Users,         color: 'bg-blue-50 text-blue-600'   },
-    { title: 'This Week Logged',  value: thisWeekLogs,                          icon: ClipboardCheck,color: 'bg-green-50 text-green-600'  },
-    { title: 'Monthly Avg Score', value: loading ? '…' : `${monthlyAverage}`,  icon: TrendingUp,    color: 'bg-purple-50 text-purple-600'},
-    { title: 'Pending This Week', value: students.length - thisWeekLogs,        icon: Calendar,      color: 'bg-orange-50 text-orange-600'},
+    { title: 'Total Students',    value: displayStudents.length,                      icon: Users,          color: 'bg-blue-50 text-blue-600'    },
+    { title: 'This Week Logged',  value: thisWeekLogs,                                icon: ClipboardCheck, color: 'bg-green-50 text-green-600'  },
+    { title: 'Monthly Avg Score', value: loading ? '…' : `${monthlyAverage}`,         icon: TrendingUp,     color: 'bg-purple-50 text-purple-600' },
+    { title: 'Pending This Week', value: displayStudents.length - thisWeekLogs,       icon: Calendar,       color: 'bg-orange-50 text-orange-600' },
   ];
 
   return (
@@ -102,7 +120,7 @@ export function DashboardPage() {
           />
           <div className="min-w-0">
             <p className="text-blue-200 text-xs font-medium tracking-widest uppercase">
-              Chand Bagh School — Student Performance Tracker
+              Chand Bagh School — CBS Portal
             </p>
             <h2 className="text-xl md:text-2xl font-bold text-white mt-0.5 truncate">
               Welcome, {profile?.name?.split(' ')[0] ?? 'there'}
@@ -115,6 +133,46 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Global Filters (Admin + Head roles) ── */}
+      {isFullViewRole && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+              <Filter className="w-4 h-4" />
+              Filter View:
+            </div>
+            <select
+              value={filterGrade}
+              onChange={e => setFilterGrade(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[38px]"
+            >
+              <option value="">All Classes</option>
+              {GRADES.map(g => <option key={g} value={g}>Grade {g.toUpperCase()}</option>)}
+            </select>
+            <select
+              value={filterHouse}
+              onChange={e => setFilterHouse(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[38px]"
+            >
+              <option value="">All Houses</option>
+              {HOUSES.map(h => <option key={h} value={h}>{h} House</option>)}
+            </select>
+            {(filterGrade || filterHouse) && (
+              <button
+                onClick={() => { setFilterGrade(''); setFilterHouse(''); }}
+                className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Clear
+              </button>
+            )}
+            <span className="ml-auto text-sm text-gray-400">
+              Showing <span className="font-semibold text-gray-600">{displayStudents.length}</span> of{' '}
+              <span className="font-semibold text-gray-600">{students.length}</span> students
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -166,12 +224,12 @@ export function DashboardPage() {
           <h3 className="text-base font-semibold text-gray-900 mb-4">Marks System Overview</h3>
           <div className="space-y-2 text-sm">
             {[
-              { label: 'A. Daily Routine Discipline', max: 50,  color: 'bg-blue-500'   },
-              { label: 'B. Hygiene & Turnout',        max: 35,  color: 'bg-teal-500'   },
-              { label: 'C. Study Discipline (Toye)',  max: 12,  color: 'bg-indigo-500' },
-              { label: 'E. Academics',                max: 25,  color: 'bg-purple-500' },
-              { label: 'F. Skills Program',           max: '5/day', color: 'bg-yellow-500'},
-              { label: 'G. Events & Activities',      max: '%', color: 'bg-pink-500'   },
+              { label: 'A. Daily Routine Discipline', max: 50,      color: 'bg-blue-500'   },
+              { label: 'B. Hygiene & Turnout',        max: 35,      color: 'bg-teal-500'   },
+              { label: 'C. Study Discipline (Toye)',  max: 12,      color: 'bg-indigo-500' },
+              { label: 'E. Academics',                max: 25,      color: 'bg-purple-500' },
+              { label: 'F. Skills Program',           max: '5/day', color: 'bg-yellow-500' },
+              { label: 'G. Events & Activities',      max: '%',     color: 'bg-pink-500'   },
             ].map(row => (
               <div key={row.label} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -185,23 +243,35 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Student Overview — Principals and VPs only */}
-      {isPrincipalView && students.length > 0 && (
+      {/* ── Student Overview — Admin + Head roles ── */}
+      {isFullViewRole && displayStudents.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-base font-semibold text-gray-900">Student Overview</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-gray-900">Student Overview</h3>
+            {isHeadRole && (
+              <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-medium">
+                Read-only · Grading limited to your domain
+              </span>
+            )}
+          </div>
 
           {/* By House */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By House</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
               {houseBreakdown.map(({ house, count }) => (
-                <div
+                <button
                   key={house}
-                  className="flex flex-col items-center justify-center bg-blue-50 border border-blue-100 rounded-lg py-3 px-2"
+                  onClick={() => setFilterHouse(filterHouse === house ? '' : house)}
+                  className={`flex flex-col items-center justify-center rounded-lg py-3 px-2 transition-colors border ${
+                    filterHouse === house
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : 'bg-blue-50 border-blue-100 hover:bg-blue-100'
+                  }`}
                 >
-                  <span className="text-xl font-bold text-blue-800">{count}</span>
-                  <span className="text-xs text-blue-600 font-medium mt-0.5 text-center leading-tight">{house}</span>
-                </div>
+                  <span className={`text-xl font-bold ${filterHouse === house ? 'text-white' : 'text-blue-800'}`}>{count}</span>
+                  <span className={`text-xs font-medium mt-0.5 text-center leading-tight ${filterHouse === house ? 'text-blue-100' : 'text-blue-600'}`}>{house}</span>
+                </button>
               ))}
             </div>
           </div>
@@ -211,13 +281,18 @@ export function DashboardPage() {
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By Class</p>
             <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3">
               {gradeBreakdown.map(({ grade, count }) => (
-                <div
+                <button
                   key={grade}
-                  className="flex flex-col items-center justify-center bg-indigo-50 border border-indigo-100 rounded-lg py-3 px-2"
+                  onClick={() => setFilterGrade(filterGrade === grade ? '' : grade)}
+                  className={`flex flex-col items-center justify-center rounded-lg py-3 px-2 transition-colors border ${
+                    filterGrade === grade
+                      ? 'bg-indigo-600 border-indigo-600 text-white'
+                      : 'bg-indigo-50 border-indigo-100 hover:bg-indigo-100'
+                  }`}
                 >
-                  <span className="text-xl font-bold text-indigo-800">{count}</span>
-                  <span className="text-xs text-indigo-600 font-medium mt-0.5 uppercase">{grade}</span>
-                </div>
+                  <span className={`text-xl font-bold ${filterGrade === grade ? 'text-white' : 'text-indigo-800'}`}>{count}</span>
+                  <span className={`text-xs font-medium mt-0.5 uppercase ${filterGrade === grade ? 'text-indigo-100' : 'text-indigo-600'}`}>{grade}</span>
+                </button>
               ))}
             </div>
           </div>

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Save, CheckCircle, Lock } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { usePerformance } from '../../hooks/usePerformance';
 import { useAuth } from '../../context/AuthContext';
-import { MARKS_SYSTEM } from '../../config/marksSystem';
+import { MARKS_SYSTEM, HEAD_ROLE_DOMAIN, HEAD_ROLES } from '../../config/marksSystem';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -132,10 +132,24 @@ function calcSkillsTotal(skills) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function DetailedMarksForm() {
+/**
+ * @param {string|null} classFilter - When set (teacher tab view), only show
+ *   students in that class grade. null shows all role-scoped students.
+ */
+export function DetailedMarksForm({ classFilter = null }) {
   const { students, loading: studentsLoading } = useStudents();
   const { saveWeeklySection, getWeeklyRecord, loading } = usePerformance();
   const { canEditSection, profile, role } = useAuth();
+
+  // For head roles, compute their allowed domains for the domain-lock banner
+  const isHeadRole = HEAD_ROLES.includes(role);
+  const headDomainSections = isHeadRole ? (HEAD_ROLE_DOMAIN[role] ?? []) : null;
+
+  // Filter students by class when a tab classFilter is active
+  const visibleStudents = useMemo(() => {
+    if (!classFilter) return students;
+    return students.filter(s => s.grade === classFilter);
+  }, [students, classFilter]);
 
   const [selectedStudent, setSelectedStudent] = useState('');
   const [year,  setYear]  = useState(CURRENT_YEAR);
@@ -283,11 +297,15 @@ export function DetailedMarksForm() {
     return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
   }
 
-  if (students.length === 0) {
+  if (visibleStudents.length === 0) {
     return (
       <div className="text-center py-16 text-gray-500">
         <p className="text-lg font-medium">No students found</p>
-        <p className="text-sm mt-1">Add students in the Roster section first.</p>
+        <p className="text-sm mt-1">
+          {classFilter
+            ? `No students in class ${classFilter.toUpperCase()}.`
+            : 'Add students in the Roster section first.'}
+        </p>
       </div>
     );
   }
@@ -303,7 +321,7 @@ export function DetailedMarksForm() {
             <select value={selectedStudent} onChange={e => handleStudentChange(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm min-h-[44px]">
               <option value="">Select student...</option>
-              {students.map(s => (
+              {visibleStudents.map(s => (
                 <option key={s.id} value={s.id}>{s.name} · {s.rollNumber}</option>
               ))}
             </select>
@@ -354,7 +372,7 @@ export function DetailedMarksForm() {
               setDailyRoutine(prev => ({ ...prev, [k]: val }));
             }}
           />
-        ) : <LockedSection title="A. Daily Routine Discipline" filledBy="Housemaster / AHM" />}
+        ) : <LockedSection title="A. Daily Routine Discipline" filledBy="Housemaster / AHM" role={role} />}
 
         {/* ── B. Hygiene & Turnout ── */}
         {canEditSection('B') ? (
@@ -368,7 +386,7 @@ export function DetailedMarksForm() {
               setHygiene(prev => ({ ...prev, [k]: val }));
             }}
           />
-        ) : <LockedSection title="B. Hygiene & Turnout" filledBy="Housemistress" />}
+        ) : <LockedSection title="B. Hygiene & Turnout" filledBy="Housemistress" role={role} />}
 
         {/* ── C. Study Discipline ── */}
         {canEditSection('C') ? (
@@ -382,7 +400,7 @@ export function DetailedMarksForm() {
               setStudyDiscipline(prev => ({ ...prev, [k]: val }));
             }}
           />
-        ) : <LockedSection title="C. Study Discipline (Toye)" filledBy="House Team" />}
+        ) : <LockedSection title="C. Study Discipline (Toye)" filledBy="House Team" role={role} />}
 
         {/* ── D. Sports & Activities ── */}
         {canEditSection('D') ? (
@@ -392,7 +410,7 @@ export function DetailedMarksForm() {
             role={role}
             savedValues={savedValuesRef.current?.sportsActivities}
           />
-        ) : <LockedSection title="D. Sports & Activities" filledBy="PE Head" />}
+        ) : <LockedSection title="D. Sports & Activities" filledBy="PE Head" role={role} />}
 
         {/* ── E. Academics ── */}
         {canEditSection('E') ? (
@@ -407,7 +425,7 @@ export function DetailedMarksForm() {
             onPenaltyChange={(k, v) => setAcademics(prev => ({ ...prev, penalties: { ...prev.penalties, [k]: v } }))}
             defaultTeacher={profile?.name} defaultSubject={profile?.subjectAssignment}
           />
-        ) : <LockedSection title="E. Academics" filledBy="Class Teacher" />}
+        ) : <LockedSection title="E. Academics" filledBy="Class Teacher" role={role} />}
 
         {/* ── F. Skills Program ── */}
         {canEditSection('F') ? (
@@ -419,14 +437,14 @@ export function DetailedMarksForm() {
               setSkillsProgram(prev => ({ ...prev, days: { ...prev.days, [k]: val } }));
             }}
           />
-        ) : <LockedSection title="F. Skills Program" filledBy="HOD Skills" />}
+        ) : <LockedSection title="F. Skills Program" filledBy="Skills Head" role={role} />}
 
         {/* ── G. Events & Activities ── */}
         {canEditSection('G') ? (
           <EventsSection data={events}
             onChange={(evKey, field, val) => setEvents(prev => ({ ...prev, [evKey]: { ...prev[evKey], [field]: val } }))}
           />
-        ) : <LockedSection title="G. Events & Activities" filledBy="Activities Head" />}
+        ) : <LockedSection title="G. Events & Activities" filledBy="Activities Head" role={role} />}
 
         {/* ── Penalties ── */}
         {canEditSection('penalties') ? (
@@ -436,7 +454,7 @@ export function DetailedMarksForm() {
               [sub]: { ...prev[sub], [key]: !prev[sub][key] }
             }))}
           />
-        ) : <LockedSection title="Penalty System" filledBy="Housemaster / AHM" />}
+        ) : <LockedSection title="Penalty System" filledBy="Housemaster / AHM" role={role} />}
 
         {/* ── Bonus ── */}
         {canEditSection('bonus') ? (
@@ -450,7 +468,7 @@ export function DetailedMarksForm() {
               setBonus(prev => ({ ...prev, [k]: val }));
             }}
           />
-        ) : <LockedSection title="Bonus Points" filledBy="Housemaster" />}
+        ) : <LockedSection title="Bonus Points" filledBy="Housemaster" role={role} />}
 
         {/* ── Notes + Submit ── */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
@@ -481,11 +499,17 @@ export function DetailedMarksForm() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function LockedSection({ title, filledBy }) {
+function LockedSection({ title, filledBy, role }) {
+  const isHead = HEAD_ROLES.includes(role);
   return (
-    <div className="bg-gray-50 rounded-xl border border-dashed border-gray-300 p-4 flex items-center gap-3 text-gray-400">
+    <div className={`rounded-xl border border-dashed p-4 flex items-center gap-3 ${
+      isHead ? 'bg-amber-50/50 border-amber-200 text-amber-700' : 'bg-gray-50 border-gray-300 text-gray-400'
+    }`}>
       <Lock className="w-4 h-4 flex-shrink-0" />
-      <span className="text-sm"><strong className="text-gray-500">{title}</strong> — filled by {filledBy}</span>
+      <span className="text-sm">
+        <strong className={isHead ? 'text-amber-800' : 'text-gray-500'}>{title}</strong>
+        {isHead ? ' — outside your grading domain' : ` — filled by ${filledBy}`}
+      </span>
     </div>
   );
 }
