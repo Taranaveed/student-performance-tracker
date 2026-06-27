@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AuthGuard, PublicGuard } from './components/auth/AuthGuard';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/LoginPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { SignUpForm } from './components/auth/SignUpForm';
 import { DashboardPage } from './pages/DashboardPage';
 import { RosterGrid } from './components/roster/RosterGrid';
@@ -21,6 +22,14 @@ function App() {
             element={
               <PublicGuard>
                 <LoginPage />
+              </PublicGuard>
+            } 
+          />
+          <Route 
+            path="/forgot-password" 
+            element={
+              <PublicGuard>
+                <ForgotPasswordPage />
               </PublicGuard>
             } 
           />

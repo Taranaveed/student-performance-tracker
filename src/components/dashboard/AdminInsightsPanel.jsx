@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AlertTriangle, TrendingUp, TrendingDown, CalendarRange,
-  Filter, X, LayoutGrid, Users,
+  LayoutGrid, Users, Download,
 } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
-import { usePerformance } from '../../hooks/usePerformance';
+import { useBulkMonthlyRecords } from '../../hooks/useBulkMonthlyRecords';
 import { buildAdminInsights, formatPeriodLabel } from '../../lib/adminAnalytics';
-import { GRADES, HOUSES } from '../../config/marksSystem';
+import { exportAdminInsightsPdf } from '../../lib/exportAdminInsights';
 
 const CURRENT_YEAR  = new Date().getFullYear();
 const CURRENT_MONTH = new Date().getMonth() + 1;
@@ -113,45 +113,16 @@ function RankingsList({ rankings, variant }) {
   );
 }
 
-export function AdminInsightsPanel() {
+export function AdminInsightsPanel({ filterGrade = '', filterHouse = '' }) {
   const { students } = useStudents();
-  const { getMonthlyRecords } = usePerformance();
 
   const [viewTab, setViewTab]       = useState('all');
   const [periodType, setPeriodType] = useState('week');
-  const [year, setYear]               = useState(CURRENT_YEAR);
+  const [year, setYear]             = useState(CURRENT_YEAR);
   const [month, setMonth]           = useState(CURRENT_MONTH);
-  const [week, setWeek]               = useState(getCurrentWeek());
-  const [filterGrade, setFilterGrade] = useState('');
-  const [filterHouse, setFilterHouse] = useState('');
-  const [loading, setLoading]         = useState(false);
-  const [recordsByStudentId, setRecordsByStudentId] = useState({});
+  const [week, setWeek]             = useState(getCurrentWeek());
 
-  const years = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR + 1];
-  const hasScopeFilter = filterGrade !== '' || filterHouse !== '';
-
-  useEffect(() => {
-    if (students.length === 0) {
-      setRecordsByStudentId({});
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-
-    Promise.all(
-      students.map(async (student) => {
-        const records = await getMonthlyRecords(student.id, year, month).catch(() => []);
-        return [student.id, records];
-      })
-    ).then(results => {
-      if (cancelled) return;
-      setRecordsByStudentId(Object.fromEntries(results));
-      setLoading(false);
-    });
-
-    return () => { cancelled = true; };
-  }, [students, year, month, getMonthlyRecords]);
+  const { recordsByStudentId, loading } = useBulkMonthlyRecords(students, year, month);
 
   const filters = useMemo(
     () => ({ filterGrade, filterHouse }),
@@ -165,9 +136,27 @@ export function AdminInsightsPanel() {
 
   const periodLabel = formatPeriodLabel(periodType, year, month, week);
 
-  const clearScopeFilters = () => {
-    setFilterGrade('');
-    setFilterHouse('');
+  const years = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR + 1];
+  const hasScopeFilter = filterGrade !== '' || filterHouse !== '';
+
+  const studentsInScope = useMemo(
+    () => students.filter(s => {
+      if (filterGrade && s.grade !== filterGrade) return false;
+      if (filterHouse && s.house !== filterHouse) return false;
+      return true;
+    }).length,
+    [students, filterGrade, filterHouse]
+  );
+
+  const handleExportPdf = () => {
+    exportAdminInsightsPdf({
+      behavioralStudents,
+      rankingsByGrade,
+      periodLabel,
+      filterGrade,
+      filterHouse,
+      studentsInScope,
+    });
   };
 
   const summaryStats = [
@@ -185,11 +174,7 @@ export function AdminInsightsPanel() {
     },
     {
       label: 'Students in scope',
-      value: students.filter(s => {
-        if (filterGrade && s.grade !== filterGrade) return false;
-        if (filterHouse && s.house !== filterHouse) return false;
-        return true;
-      }).length,
+      value: studentsInScope,
       color: 'bg-blue-50 text-blue-700 border-blue-100',
       tab: 'all',
     },
@@ -204,6 +189,15 @@ export function AdminInsightsPanel() {
             <h3 className="text-base font-semibold text-gray-900">Admin Insights</h3>
             <p className="text-xs text-gray-500 mt-0.5">{periodLabel}</p>
           </div>
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={loading || students.length === 0}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            Export PDF
+          </button>
         </div>
       </div>
 
@@ -228,110 +222,70 @@ export function AdminInsightsPanel() {
           ))}
         </div>
 
-        {/* Period + scope filters */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
-              <CalendarRange className="w-3.5 h-3.5" />
-              Period
-            </span>
+        {/* Period filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
+            <CalendarRange className="w-3.5 h-3.5" />
+            Period
+          </span>
+          <select
+            value={periodType}
+            onChange={e => setPeriodType(e.target.value)}
+            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          >
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+          </select>
+          <select
+            value={month}
+            onChange={e => setMonth(Number(e.target.value))}
+            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          >
+            {MONTHS.map((m, i) => (
+              <option key={m} value={i + 1}>{m}</option>
+            ))}
+          </select>
+          <select
+            value={year}
+            onChange={e => setYear(Number(e.target.value))}
+            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          >
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          {periodType === 'week' && (
             <select
-              value={periodType}
-              onChange={e => setPeriodType(e.target.value)}
+              value={week}
+              onChange={e => setWeek(Number(e.target.value))}
               className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              <option value="week">Week</option>
-              <option value="month">Month</option>
-            </select>
-            <select
-              value={month}
-              onChange={e => setMonth(Number(e.target.value))}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              {MONTHS.map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
+              {[1, 2, 3, 4].map(w => (
+                <option key={w} value={w}>W{w}</option>
               ))}
             </select>
-            <select
-              value={year}
-              onChange={e => setYear(Number(e.target.value))}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            {periodType === 'week' && (
-              <select
-                value={week}
-                onChange={e => setWeek(Number(e.target.value))}
-                className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-              >
-                {[1, 2, 3, 4].map(w => (
-                  <option key={w} value={w}>W{w}</option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide shrink-0">
-              <Filter className="w-3.5 h-3.5" />
-              Scope
-            </span>
-            <select
-              value={filterGrade}
-              onChange={e => setFilterGrade(e.target.value)}
-              className="flex-1 min-w-[120px] px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              <option value="">All Classes</option>
-              {GRADES.map(g => (
-                <option key={g} value={g}>{g.toUpperCase()}</option>
-              ))}
-            </select>
-            <select
-              value={filterHouse}
-              onChange={e => setFilterHouse(e.target.value)}
-              className="flex-1 min-w-[120px] px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              <option value="">All Houses</option>
-              {HOUSES.map(h => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
-            {hasScopeFilter && (
-              <button
-                type="button"
-                onClick={clearScopeFilters}
-                className="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                <X className="w-3.5 h-3.5" />
-                Clear
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Active filter pills + quick summary */}
+        {/* Synced scope from dashboard filters */}
+        {hasScopeFilter && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Using dashboard filters:
+            </span>
+            {filterGrade && (
+              <span className="text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full font-medium">
+                Class {filterGrade.toUpperCase()}
+              </span>
+            )}
+            {filterHouse && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-medium">
+                {filterHouse} House
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Quick summary */}
         <div className="flex flex-wrap items-center gap-2">
-          {hasScopeFilter && (
-            <>
-              {filterGrade && (
-                <span className="inline-flex items-center gap-1 text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full font-medium">
-                  Class {filterGrade.toUpperCase()}
-                  <button type="button" onClick={() => setFilterGrade('')} className="hover:text-indigo-950">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {filterHouse && (
-                <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-medium">
-                  {filterHouse} House
-                  <button type="button" onClick={() => setFilterHouse('')} className="hover:text-blue-950">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-            </>
-          )}
           <div className="flex flex-wrap gap-2 ml-auto">
             {summaryStats.map(stat => (
               <button

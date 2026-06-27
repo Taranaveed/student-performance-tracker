@@ -4,6 +4,7 @@ import { Menu } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { EmailVerificationBanner } from '../auth/EmailVerificationBanner';
 import schoolLogo from '../../assets/chand-bagh-logo.png';
 
 export function Layout() {
@@ -47,6 +48,8 @@ export function Layout() {
         <div className="hidden lg:block">
           <Header />
         </div>
+
+        <EmailVerificationBanner />
         
         <main className="flex-1 p-3 md:p-6 lg:p-8 overflow-y-auto">
           <Outlet />

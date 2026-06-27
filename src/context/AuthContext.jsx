@@ -125,6 +125,16 @@ export function AuthProvider({ children }) {
     await handleRoleSelect(role);
   }, [profile, handleRoleSelect]);
 
+  const resendVerificationEmail = useCallback(async () => {
+    await authService.resendVerificationEmail();
+  }, []);
+
+  const refreshAuthUser = useCallback(async () => {
+    const updated = await authService.reloadAuthUser();
+    if (updated) setUser({ ...updated });
+    return updated;
+  }, []);
+
   // Returns true if the current role can edit the given section key
   const canEditSection = useCallback((section) => {
     const role = activeRole;
@@ -144,6 +154,7 @@ export function AuthProvider({ children }) {
     teacherData: profile,
     loading,
     isAuthenticated: !!user,
+    emailVerified: user?.emailVerified ?? false,
     role: activeRole,
     activeRole,
     // All roles this account can assume
@@ -154,6 +165,8 @@ export function AuthProvider({ children }) {
     canEditSection,
     hasFullView,
     switchRole,
+    resendVerificationEmail,
+    refreshAuthUser,
   };
 
   if (loading) {

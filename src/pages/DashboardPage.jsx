@@ -1,11 +1,12 @@
 import { useStudents } from '../hooks/useStudents';
-import { usePerformance } from '../hooks/usePerformance';
+import { useBulkMonthlyRecords } from '../hooks/useBulkMonthlyRecords';
 import { Users, ClipboardCheck, TrendingUp, Calendar, BookOpen, Filter } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ROLE_LABELS, FULL_VIEW_ROLES, HEAD_ROLES, HOUSES, GRADES } from '../config/marksSystem';
 import { AdminInsightsPanel } from '../components/dashboard/AdminInsightsPanel';
+import { calcWeekGrandTotal } from '../lib/adminAnalytics';
 import bannerImg  from '../assets/chand-bagh-banner.png';
 import schoolLogo from '../assets/chand-bagh-logo.png';
 
@@ -19,12 +20,12 @@ function getCurrentWeek() {
 
 export function DashboardPage() {
   const { students } = useStudents();
-  const { getMonthlyRecords } = usePerformance();
   const { profile, role } = useAuth();
-
-  const [thisWeekLogs, setThisWeekLogs]     = useState(0);
-  const [monthlyAverage, setMonthlyAverage] = useState(0);
-  const [loading, setLoading]               = useState(true);
+  const { recordsByStudentId, loading: recordsLoading } = useBulkMonthlyRecords(
+    students,
+    CURRENT_YEAR,
+    CURRENT_MONTH
+  );
 
   // ── Global filters (visible to Admin + Head roles) ───────────────────────────
   const [filterGrade, setFilterGrade] = useState('');
@@ -44,44 +45,28 @@ export function DashboardPage() {
     });
   }, [students, isFullViewRole, filterGrade, filterHouse]);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (students.length === 0) { setLoading(false); return; }
+  const { thisWeekLogs, monthlyAverage } = useMemo(() => {
+    const currentWeek = getCurrentWeek();
+    let totalGrand = 0;
+    let totalWeeks = 0;
+    let thisWeekCount = 0;
 
-      const currentWeek = getCurrentWeek();
-      let totalGrand = 0;
-      let totalWeeks = 0;
-      let thisWeekCount = 0;
+    students.forEach(student => {
+      const records = recordsByStudentId[student.id] ?? [];
+      const thisWeekRec = records.find(r => r.week === currentWeek);
+      if (thisWeekRec) thisWeekCount++;
 
-      const allMonthly = await Promise.all(
-        students.map(s =>
-          getMonthlyRecords(s.id, CURRENT_YEAR, CURRENT_MONTH).catch(() => [])
-        )
-      );
-
-      allMonthly.forEach(records => {
-        const thisWeekRec = records.find(r => r.week === currentWeek);
-        if (thisWeekRec) thisWeekCount++;
-
-        records.forEach(rec => {
-          const grand = (rec.weeklyTotals?.grandTotal) ?? (
-            (rec.dailyRoutine    ? Object.values(rec.dailyRoutine).reduce((a,b)=>a+b,0)    : 0) +
-            (rec.hygiene         ? Object.values(rec.hygiene).reduce((a,b)=>a+b,0)         : 0) +
-            (rec.studyDiscipline ? Object.values(rec.studyDiscipline).reduce((a,b)=>a+b,0) : 0) +
-            (rec.academics?.marks ? Object.values(rec.academics.marks).reduce((a,b)=>a+b,0): 0)
-          );
-          totalGrand += grand;
-          totalWeeks++;
-        });
+      records.forEach(rec => {
+        totalGrand += calcWeekGrandTotal(rec);
+        totalWeeks++;
       });
+    });
 
-      setThisWeekLogs(thisWeekCount);
-      setMonthlyAverage(totalWeeks > 0 ? Math.round(totalGrand / totalWeeks) : 0);
-      setLoading(false);
+    return {
+      thisWeekLogs: thisWeekCount,
+      monthlyAverage: totalWeeks > 0 ? Math.round(totalGrand / totalWeeks) : 0,
     };
-
-    fetchStats();
-  }, [students, getMonthlyRecords]);
+  }, [students, recordsByStudentId]);
 
   const displayStudents = isFullViewRole ? filteredStudents : students;
 
@@ -98,7 +83,7 @@ export function DashboardPage() {
   const stats = [
     { title: 'Total Students',    value: displayStudents.length,                      icon: Users,          color: 'bg-blue-50 text-blue-600',    to: '/roster' },
     { title: 'This Week Logged',  value: thisWeekLogs,                                icon: ClipboardCheck, color: 'bg-green-50 text-green-600'  },
-    { title: 'Monthly Avg Score', value: loading ? '…' : `${monthlyAverage}`,         icon: TrendingUp,     color: 'bg-purple-50 text-purple-600' },
+    { title: 'Monthly Avg Score', value: recordsLoading ? '…' : `${monthlyAverage}`, icon: TrendingUp,     color: 'bg-purple-50 text-purple-600' },
     { title: 'Pending This Week', value: displayStudents.length - thisWeekLogs,       icon: Calendar,       color: 'bg-orange-50 text-orange-600' },
   ];
 
@@ -170,6 +155,9 @@ export function DashboardPage() {
             <span className="ml-auto text-sm text-gray-400">
               Showing <span className="font-semibold text-gray-600">{displayStudents.length}</span> of{' '}
               <span className="font-semibold text-gray-600">{students.length}</span> students
+              {isAdminView && (filterGrade || filterHouse) && (
+                <span className="hidden sm:inline"> · insights synced</span>
+              )}
             </span>
           </div>
         </div>
@@ -263,7 +251,9 @@ export function DashboardPage() {
       </div>
 
       {/* ── Admin-only insights (behavior + top/bottom 3 per class) ── */}
-      {isAdminView && <AdminInsightsPanel />}
+      {isAdminView && (
+        <AdminInsightsPanel filterGrade={filterGrade} filterHouse={filterHouse} />
+      )}
 
       {/* ── Student Overview — Admin + Head roles ── */}
       {isFullViewRole && displayStudents.length > 0 && (

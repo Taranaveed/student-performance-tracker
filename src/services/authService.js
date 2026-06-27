@@ -2,6 +2,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  reload,
   updateProfile,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
@@ -31,6 +34,7 @@ export const authService = {
     const user = userCredential.user;
 
     await updateProfile(user, { displayName: name });
+    await sendEmailVerification(user);
 
     // Normalise class assignment: prefer assignedClasses array, fall back to
     // classAssignment string, default to empty array.
@@ -89,7 +93,7 @@ export const authService = {
       console.error('Auto-seed roster failed (sign-up still succeeded):', err);
     }
 
-    return { user, importResult };
+    return { user, importResult, verificationSent: true };
   },
 
   async login(email, password) {
@@ -99,6 +103,23 @@ export const authService = {
 
   async logout() {
     await signOut(auth);
+  },
+
+  async resetPassword(email) {
+    await sendPasswordResetEmail(auth, email);
+  },
+
+  async resendVerificationEmail() {
+    const user = auth.currentUser;
+    if (!user) throw new Error('You must be signed in to resend verification email.');
+    await sendEmailVerification(user);
+  },
+
+  async reloadAuthUser() {
+    const user = auth.currentUser;
+    if (!user) return null;
+    await reload(user);
+    return auth.currentUser;
   },
 
   async getUserProfile(uid) {

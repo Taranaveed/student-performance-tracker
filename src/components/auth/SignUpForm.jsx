@@ -23,8 +23,9 @@ export function SignUpForm() {
   const [showPassword,      setShowPassword]      = useState(false);
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  // 'signup'    → normal new-account form
-  // 'add-role'  → email already exists; ask for existing password to add role
+  // 'signup'         → normal new-account form
+  // 'add-role'       → email already exists; ask for existing password to add role
+  // 'verify-email'   → new account created; prompt to verify email
   const [step,           setStep]           = useState('signup');
   const [error,          setError]          = useState('');
   const [loading,        setLoading]        = useState(false);
@@ -79,10 +80,8 @@ export function SignUpForm() {
           ? `class ${importResult.assignment.toUpperCase()}`
           : `${importResult.assignment} House`;
         setSuccessMessage(`Roster auto-populated with ${importResult.imported} students from ${label}.`);
-        setTimeout(() => navigate('/'), 2500);
-      } else {
-        navigate('/');
       }
+      setStep('verify-email');
     } catch (err) {
       // Email already in use → offer to add this role to the existing account
       if (err.code === 'auth/email-already-in-use') {
@@ -240,6 +239,39 @@ export function SignUpForm() {
       )}
     </>
   );
+
+  // ── Step 3: Verify email after sign-up ────────────────────────────────────
+  if (step === 'verify-email') {
+    return (
+      <div className="space-y-5">
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900">
+          <Mail className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Check your email to verify your account</p>
+            <p className="mt-1 text-amber-800">
+              We sent a verification link to <strong>{email}</strong>.
+              Open the link, then continue to the portal.
+            </p>
+            {successMessage && (
+              <p className="mt-2 text-green-700 font-medium">{successMessage}</p>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="btn-primary w-full"
+        >
+          Continue to Portal
+        </button>
+
+        <p className="text-center text-xs text-gray-500">
+          Didn't receive it? Check spam or use the resend option in the portal banner after signing in.
+        </p>
+      </div>
+    );
+  }
 
   // ── Render ────────────────────────────────────────────────────────────────
 
