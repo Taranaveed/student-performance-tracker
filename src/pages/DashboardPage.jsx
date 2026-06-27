@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ROLE_LABELS, FULL_VIEW_ROLES, HEAD_ROLES, HOUSES, GRADES } from '../config/marksSystem';
+import { AdminInsightsPanel } from '../components/dashboard/AdminInsightsPanel';
 import bannerImg  from '../assets/chand-bagh-banner.png';
 import schoolLogo from '../assets/chand-bagh-logo.png';
 
@@ -260,6 +261,9 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Admin-only insights (behavior + top/bottom 3 per class) ── */}
+      {isAdminView && <AdminInsightsPanel />}
 
       {/* ── Student Overview — Admin + Head roles ── */}
       {isFullViewRole && displayStudents.length > 0 && (
