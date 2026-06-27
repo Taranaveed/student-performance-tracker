@@ -8,7 +8,6 @@ export const ROLES = {
   PE_HEAD:        'peHead',
   SKILLS_HEAD:    'skillsHead',
   ACTIVITIES_HEAD:'activitiesHead',
-  HOUSE_TEAM:     'houseTeam',
 };
 
 export const ROLE_LABELS = {
@@ -19,7 +18,6 @@ export const ROLE_LABELS = {
   peHead:        'PE Head',
   skillsHead:    'Skills Head',
   activitiesHead:'Activities Head',
-  houseTeam:     'House Team',
 };
 
 // Which roles can VIEW all students across the entire institution (no house/class restriction)
@@ -40,7 +38,6 @@ export const HEAD_ROLE_DOMAIN = {
 export const ROLE_SECTION_PERMISSIONS = {
   admin:         ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'penalties', 'bonus'],
   housemaster:   ['A', 'C', 'penalties', 'bonus'],
-  houseTeam:     ['A', 'C'],
   housemistress: ['B'],
   teacher:       ['E'],
   peHead:        ['D'],
@@ -52,11 +49,11 @@ export const ROLE_SECTION_PERMISSIONS = {
 
 export const MARKS_SYSTEM = {
 
-  // A. Daily Routine Discipline  (HM / AHM / House Team)
+  // A. Daily Routine Discipline  (Housemaster/AHM)
   dailyRoutine: {
     label: 'Daily Routine Discipline',
     section: 'A',
-    filledBy: ['housemaster', 'houseTeam', 'admin'],
+    filledBy: ['housemaster', 'admin'],
     maxTotal: 50,
     factors: [
       { key: 'wakeUpOnTime',         label: 'Wake-up on time',          max: 7 },
@@ -85,11 +82,11 @@ export const MARKS_SYSTEM = {
     ],
   },
 
-  // C. Study Discipline — Toye  (House Team)
+  // C. Study Discipline — Toye  (Housemaster/AHM)
   studyDiscipline: {
     label: 'Study Discipline (Toye)',
     section: 'C',
-    filledBy: ['houseTeam', 'housemaster', 'admin'],
+    filledBy: ['housemaster', 'admin'],
     maxTotal: 12,
     factors: [
       { key: 'toye1', label: 'Toye 1', max: 6 },

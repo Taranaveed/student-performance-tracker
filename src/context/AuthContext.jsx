@@ -19,7 +19,6 @@ const ROLE_ICONS = {
   peHead:        { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
   skillsHead:    { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' },
   activitiesHead:{ bg: 'bg-teal-100',   text: 'text-teal-700',   border: 'border-teal-200'   },
-  houseTeam:     { bg: 'bg-gray-100',   text: 'text-gray-700',   border: 'border-gray-200'   },
 };
 
 function RolePickerScreen({ profile, onSelect }) {

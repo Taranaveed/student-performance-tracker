@@ -95,7 +95,7 @@ export function DashboardPage() {
   );
 
   const stats = [
-    { title: 'Total Students',    value: displayStudents.length,                      icon: Users,          color: 'bg-blue-50 text-blue-600'    },
+    { title: 'Total Students',    value: displayStudents.length,                      icon: Users,          color: 'bg-blue-50 text-blue-600',    to: '/roster' },
     { title: 'This Week Logged',  value: thisWeekLogs,                                icon: ClipboardCheck, color: 'bg-green-50 text-green-600'  },
     { title: 'Monthly Avg Score', value: loading ? '…' : `${monthlyAverage}`,         icon: TrendingUp,     color: 'bg-purple-50 text-purple-600' },
     { title: 'Pending This Week', value: displayStudents.length - thisWeekLogs,       icon: Calendar,       color: 'bg-orange-50 text-orange-600' },
@@ -176,8 +176,8 @@ export function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+        {stats.map((stat, i) => {
+          const content = (
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs md:text-sm font-medium text-gray-600">{stat.title}</p>
@@ -187,8 +187,26 @@ export function DashboardPage() {
                 <stat.icon className="w-5 h-5 md:w-6 md:h-6" />
               </div>
             </div>
-          </div>
-        ))}
+          );
+
+          if (stat.to) {
+            return (
+              <Link
+                key={i}
+                to={stat.to}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 block hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          return (
+            <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+              {content}
+            </div>
+          );
+        })}
       </div>
 
       {/* Quick actions + info */}

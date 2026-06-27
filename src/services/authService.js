@@ -10,7 +10,7 @@ import { SEED_STUDENTS } from '../config/seedStudents';
 import { studentService } from './studentService';
 import { MAX_TEACHER_CLASSES } from '../config/marksSystem';
 
-const HOUSE_ROLES = ['housemaster', 'housemistress', 'houseTeam'];
+const HOUSE_ROLES = ['housemaster', 'housemistress'];
 
 const USERS_COLLECTION = 'users';
 

@@ -4,14 +4,14 @@ export function Footer() {
       <p className="text-xs text-gray-400">
         © {new Date().getFullYear()} Chand Bagh School
         <span className="mx-2 text-gray-300">|</span>
-        Developed by{' '}
+        Powered by{' '}
         <a
           href="https://aisitara.com"
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-500 hover:text-blue-700 font-medium transition-colors"
         >
-          Sitara
+          AIS
         </a>
       </p>
     </footer>

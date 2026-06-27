@@ -400,7 +400,7 @@ export function DetailedMarksForm({ classFilter = null }) {
               setStudyDiscipline(prev => ({ ...prev, [k]: val }));
             }}
           />
-        ) : <LockedSection title="C. Study Discipline (Toye)" filledBy="House Team" role={role} />}
+        ) : <LockedSection title="C. Study Discipline (Toye)" filledBy="Housemaster/AHM" role={role} />}
 
         {/* ── D. Sports & Activities ── */}
         {canEditSection('D') ? (

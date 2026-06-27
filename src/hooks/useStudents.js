@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { studentService } from '../services/studentService';
 import { useAuth } from '../context/AuthContext';
 
-const HOUSE_SCOPED_ROLES = ['housemaster', 'housemistress', 'houseTeam'];
+const HOUSE_SCOPED_ROLES = ['housemaster', 'housemistress'];
 
 export function useStudents() {
   const { user, role, houseAssignment, classAssignment, assignedClasses, hasFullView } = useAuth();

@@ -14,7 +14,6 @@ const ROLE_COLORS = {
   peHead:               'bg-orange-100 text-orange-700',
   skillsHead:           'bg-yellow-100 text-yellow-700',
   activitiesHead:       'bg-teal-100 text-teal-700',
-  houseTeam:            'bg-gray-100 text-gray-700',
 };
 
 export function Sidebar({ onClose }) {
